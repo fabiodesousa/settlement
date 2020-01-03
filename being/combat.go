@@ -56,7 +56,7 @@ func (b *Being) RollInitiative(n int) float64 {
 	return roll
 }
 
-// SelectTarget takes a slice of enemy beings, and selects at least one target
+// SelectTarget takes a slice of enemy being pointers, and selects at least one target
 func (b *Being) SelectTarget(enemies []Being) []Being {
 	fmt.Println("selecting target")
 	max := b.MaxStat()
@@ -81,14 +81,14 @@ func (b *Being) SelectTarget(enemies []Being) []Being {
 		}
 	// if the attacker is using INT, they get to select INTMOD targets at random
 	case "INT":
-		fmt.Printf("Selecting %d out of %d enemies", max.Mod, len(enemies))
-		for i := 0; i < max.Mod; i++ {
+		fmt.Printf("Selecting %d out of %d enemies", max.Mod+1, len(enemies))
+		for i := 0; i <= max.Mod; i++ {
 			fmt.Printf("%d,", len(enemies))
 			if len(enemies) > 0 {
 				x := dice.Roll(len(enemies)) - 1
 				targets = append(targets, enemies[x])
 				enemies[x] = enemies[len(enemies)-1]
-				enemies[len(enemies)-1] = Being{}
+				//enemies[len(enemies)-1] = Being{}
 				enemies = enemies[:len(enemies)-1]
 			}
 		}
@@ -97,4 +97,27 @@ func (b *Being) SelectTarget(enemies []Being) []Being {
 		targets = append(targets, enemies[x])
 	}
 	return targets
+}
+
+// Attack takes an array of enemies and deals damage or converts them
+func (b *Being) Attack(enemies []Being) {
+	for i := 0; i < len(enemies); i++ {
+		max := b.MaxStat()
+		fmt.Printf("%s (%s %d) attacks %s (%s %d)\n", b.Name, max.Name, max.Value, enemies[i].Name, max.Name, enemies[i].GetStat(max.Name).Value)
+		if max.Value >= enemies[i].GetStat(max.Name).Value {
+			fmt.Println("It's a hit!")
+			// Charisma check
+			if max.Name == "CHA" && dice.Roll(100) > (100-max.Mod*5) {
+				enemies[i].Team = b.Team
+				fmt.Printf("%s has been converted to Team %s\n", enemies[i].Name, enemies[i].Team)
+			} else if max.Name == "STR" {
+				enemies[i].HitPoints.Current -= max.Mod
+				fmt.Printf("It's a hit for %d damage! %s is at %d/%d\n", max.Mod, enemies[i].Name, enemies[i].HitPoints.Current, enemies[i].HitPoints.Max)
+			} else {
+				enemies[i].HitPoints.Current--
+				fmt.Printf("It's a hit! %s is at %d/%d\n", enemies[i].Name, enemies[i].HitPoints.Current, enemies[i].HitPoints.Max)
+			}
+			PrintStats(enemies[i])
+		}
+	}
 }

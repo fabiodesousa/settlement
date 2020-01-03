@@ -11,8 +11,12 @@ func main() {
 	var villagers []being.Being
 	var enemies []being.Being
 	for i := 0; i < 5; i++ {
-		villagers = append(villagers, being.NewRandomBeing())
-		enemies = append(enemies, being.NewRandomBeing())
+		newVillager := being.NewRandomBeing()
+		newVillager.AssignTeam("villagers")
+		newEnemy := being.NewRandomBeing()
+		newEnemy.AssignTeam("bandits")
+		villagers = append(villagers, newVillager)
+		enemies = append(enemies, newEnemy)
 	}
 	targets := villagers[0].SelectTarget(enemies)
 	fmt.Print("Attacker: ")
@@ -21,4 +25,5 @@ func main() {
 	for _, target := range targets {
 		being.PrintStats(target)
 	}
+	villagers[0].Attack(targets)
 }
