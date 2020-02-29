@@ -4,26 +4,34 @@ import (
 	"fmt"
 
 	"github.com/fabiodesousa/settlement/being"
-	//"github.com/fabiodesousa/settlement/combat"
 )
 
 func main() {
-	var villagers []being.Being
-	var enemies []being.Being
+	villagers := being.Team{Name: "villagers", Roster: make([]being.Being, 0)}
+	enemies := being.Team{Name: "bandits", Roster: make([]being.Being, 0)}
+	encounter := being.Encounter{TurnCount: 0}
 	for i := 0; i < 5; i++ {
 		newVillager := being.NewRandomBeing()
-		newVillager.AssignTeam("villagers")
+		//being.PrintStats(newVillager)
+		villagers.AddTeamMember(newVillager)
 		newEnemy := being.NewRandomBeing()
-		newEnemy.AssignTeam("bandits")
-		villagers = append(villagers, newVillager)
-		enemies = append(enemies, newEnemy)
+		enemies.AddTeamMember(newEnemy)
 	}
-	targets := villagers[0].SelectTarget(enemies)
-	fmt.Print("Attacker: ")
-	being.PrintStats(villagers[0])
-	fmt.Println("Defender(s):")
-	for _, target := range targets {
-		being.PrintStats(target)
-	}
-	villagers[0].Attack(targets)
+	encounter.Attackers = enemies
+	encounter.Defenders = villagers
+	encounter.RollInitiative()
+	fmt.Printf("Villagers size: %v\n", len(villagers.Roster))
+
+	/*
+		targets := villagers[0].SelectTarget(enemies)
+		fmt.Print("Attacker: ")
+		being.PrintStats(villagers[0])
+		fmt.Println("Defender(s):")
+		for _, target := range targets {
+			being.PrintStats(target)
+		}
+		villagers[0].Attack(targets)
+
+		villagers[0].RollInitiative()
+		fmt.Printf("Initiative: %.2f", villagers[0].Initiative)*/
 }

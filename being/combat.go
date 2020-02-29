@@ -18,7 +18,6 @@ package being
 
 import (
 	"fmt"
-	"math"
 	"sort"
 
 	"github.com/fabiodesousa/settlement/dice"
@@ -28,6 +27,50 @@ import (
 type HitPoints struct {
 	Max     int
 	Current int
+}
+
+// AddTeamMember sets the Team for a Being
+func (t *Team) AddTeamMember(being Being) {
+	being.Team = t
+	t.Roster = append(t.Roster, being)
+}
+
+// RemoveTeamMember removes a specified being from the Team
+func (t *Team) RemoveTeamMember(being Being) {
+	for i := range t.Roster {
+		if t.Roster[i].ID == being.ID {
+			t.Roster[i] = t.Roster[len(t.Roster)-1]
+			t.Roster[len(t.Roster)-1] = Being{}
+			t.Roster = t.Roster[:len(t.Roster)-1]
+		}
+	}
+
+}
+
+// DefectTo removes a being from their current team and adds them to the provided team
+func (b Being) DefectTo(t *Team) {
+	b.Team.RemoveTeamMember(b)
+	t.AddTeamMember(b)
+}
+
+// Team has a Name and Roster
+type Team struct {
+	Name   string
+	Roster []Being
+}
+
+// Encounter has an Initiative, TurnCount, Attackers, and Defenders
+type Encounter struct {
+	Initiative InitiativeOrder
+	TurnCount  int
+	Attackers  Team
+	Defenders  Team
+}
+
+// InitiativeOrder has an array of being pointers sorted by initiative, plus current spot in order
+type InitiativeOrder struct {
+	Order       []*Being
+	CurrentTurn int
 }
 
 // NewHitPoints rolls 1d(6+CONMOD) and adds CONMOD to result if CONMOD is highest
@@ -48,16 +91,32 @@ func (stats *StatBlock) NewHitPoints() HitPoints {
 	}
 }
 
-// RollInitiative rolls initiative for a being given the number of combatants
-func (b *Being) RollInitiative(n int) float64 {
-	roll := float64(dice.Roll(n))
-	base := math.Pow(10, math.Floor(math.Log10(float64(n))))
+// RollInitiative rolls initiative for each being in an encounter and adds them in order to the InitiativeOrder
+func (e Encounter) RollInitiative() {
+	e.Initiative = InitiativeOrder{CurrentTurn: 0}
+	for _, i := range e.Attackers.Roster {
+		b := &i
+		b.RollInitiative()
+		fmt.Printf("%s rolled %.2f\n", i.Name, i.Initiative)
+	}
+	for _, i := range e.Attackers.Roster {
+		b := &i
+		b.RollInitiative()
+		fmt.Printf("%s rolled %.2f\n", i.Name, i.Initiative)
+	}
+
+}
+
+// RollInitiative rolls initiative for a being using a d20
+func (b *Being) RollInitiative() {
+	roll := float64(dice.Roll(20))
+	base := 100.00
 	roll += float64(b.DEX()) / base
-	return roll
+	b.Initiative = roll
 }
 
 // SelectTarget takes a slice of enemy being pointers, and selects at least one target
-func (b *Being) SelectTarget(enemies []Being) []Being {
+func (b Being) SelectTarget(enemies []Being) []Being {
 	fmt.Println("selecting target")
 	max := b.MaxStat()
 	fmt.Println("Max stat is " + max.Name)
@@ -72,7 +131,6 @@ func (b *Being) SelectTarget(enemies []Being) []Being {
 		})
 		// if there are more enemies than WISMOD, return the weakest slice
 		// otherwise return a slice of 1
-		fmt.Println(enemies)
 		if len(targets) > max.Mod {
 			narrowed := enemies[:max.Mod]
 			targets = append(targets, narrowed[dice.Roll(len(narrowed))])
@@ -83,7 +141,6 @@ func (b *Being) SelectTarget(enemies []Being) []Being {
 	case "INT":
 		fmt.Printf("Selecting %d out of %d enemies", max.Mod+1, len(enemies))
 		for i := 0; i <= max.Mod; i++ {
-			fmt.Printf("%d,", len(enemies))
 			if len(enemies) > 0 {
 				x := dice.Roll(len(enemies)) - 1
 				targets = append(targets, enemies[x])
@@ -100,7 +157,7 @@ func (b *Being) SelectTarget(enemies []Being) []Being {
 }
 
 // Attack takes an array of enemies and deals damage or converts them
-func (b *Being) Attack(enemies []Being) {
+func (b Being) Attack(enemies []Being) {
 	for i := 0; i < len(enemies); i++ {
 		max := b.MaxStat()
 		fmt.Printf("%s (%s %d) attacks %s (%s %d)\n", b.Name, max.Name, max.Value, enemies[i].Name, max.Name, enemies[i].GetStat(max.Name).Value)
@@ -108,16 +165,15 @@ func (b *Being) Attack(enemies []Being) {
 			fmt.Println("It's a hit!")
 			// Charisma check
 			if max.Name == "CHA" && dice.Roll(100) > (100-max.Mod*5) {
-				enemies[i].Team = b.Team
-				fmt.Printf("%s has been converted to Team %s\n", enemies[i].Name, enemies[i].Team)
+				enemies[i].DefectTo(b.Team)
+				fmt.Printf("%s has been converted to Team %s\n", enemies[i].Name, enemies[i].Team.Name)
 			} else if max.Name == "STR" {
 				enemies[i].HitPoints.Current -= max.Mod
-				fmt.Printf("It's a hit for %d damage! %s is at %d/%d\n", max.Mod, enemies[i].Name, enemies[i].HitPoints.Current, enemies[i].HitPoints.Max)
+				fmt.Printf("%d damage! %s is at %d/%d\n", max.Mod, enemies[i].Name, enemies[i].HitPoints.Current, enemies[i].HitPoints.Max)
 			} else {
 				enemies[i].HitPoints.Current--
-				fmt.Printf("It's a hit! %s is at %d/%d\n", enemies[i].Name, enemies[i].HitPoints.Current, enemies[i].HitPoints.Max)
+				fmt.Printf("%s is at %d/%d\n", enemies[i].Name, enemies[i].HitPoints.Current, enemies[i].HitPoints.Max)
 			}
-			PrintStats(enemies[i])
 		}
 	}
 }

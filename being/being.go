@@ -10,10 +10,11 @@ import (
 
 // A Being has a name, sex and a slice of six stats
 type Being struct {
-	ID   string
-	Name string
-	Sex  string
-	Team string
+	ID         string
+	Name       string
+	Sex        string
+	Team       *Team
+	Initiative float64
 	HitPoints
 	StatBlock
 }
@@ -37,7 +38,7 @@ func makeName(sex string) string {
 // PrintStats prints each of the Beings stats
 func PrintStats(b Being) {
 	fmt.Printf("%s (%d/%d) [%s]\n", b.Name, b.HitPoints.Current, b.HitPoints.Max, b.MaxStat().Name)
-	fmt.Printf("Team: %s\n", b.Team)
+	fmt.Printf("Team: %s\n", b.Team.Name)
 	fmt.Printf("STR:%d (%d)\t", b.STR(), b.GetStat("STR").Mod)
 	fmt.Printf("INT:%d (%d)\n", b.INT(), b.GetStat("INT").Mod)
 	fmt.Printf("DEX:%d (%d)\t", b.DEX(), b.GetStat("DEX").Mod)
@@ -45,11 +46,6 @@ func PrintStats(b Being) {
 	fmt.Printf("CON:%d (%d)\t", b.CON(), b.GetStat("CON").Mod)
 	fmt.Printf("CHA:%d (%d)\n", b.CHA(), b.GetStat("CHA").Mod)
 	return
-}
-
-// AssignTeam sets the team for a Being
-func (b *Being) AssignTeam(team string) {
-	b.Team = team
 }
 
 // NewRandomBeing generates a random Being
