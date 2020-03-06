@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/fabiodesousa/settlement/being"
 )
 
@@ -12,15 +10,14 @@ func main() {
 	encounter := being.Encounter{TurnCount: 0}
 	for i := 0; i < 5; i++ {
 		newVillager := being.NewRandomBeing()
-		//being.PrintStats(newVillager)
 		villagers.AddTeamMember(newVillager)
 		newEnemy := being.NewRandomBeing()
 		enemies.AddTeamMember(newEnemy)
 	}
 	encounter.Attackers = enemies
 	encounter.Defenders = villagers
-	encounter.RollInitiative()
-	fmt.Printf("Villagers size: %v\n", len(villagers.Roster))
+	encounter.Initiative = encounter.RollInitiative()
+	encounter.Initiative.PrintInitiative()
 
 	/*
 		targets := villagers[0].SelectTarget(enemies)

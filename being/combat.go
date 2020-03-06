@@ -69,7 +69,7 @@ type Encounter struct {
 
 // InitiativeOrder has an array of being pointers sorted by initiative, plus current spot in order
 type InitiativeOrder struct {
-	Order       []*Being
+	Order       []Being
 	CurrentTurn int
 }
 
@@ -91,28 +91,56 @@ func (stats *StatBlock) NewHitPoints() HitPoints {
 	}
 }
 
-// RollInitiative rolls initiative for each being in an encounter and adds them in order to the InitiativeOrder
-func (e Encounter) RollInitiative() {
-	e.Initiative = InitiativeOrder{CurrentTurn: 0}
-	for _, i := range e.Attackers.Roster {
-		b := &i
-		b.RollInitiative()
-		fmt.Printf("%s rolled %.2f\n", i.Name, i.Initiative)
+// PrintInitiative prints the current turn in the order and who is on deck
+func (i InitiativeOrder) PrintInitiative() {
+	var current = i.Order[i.CurrentTurn].Name
+	var next string
+	if i.CurrentTurn+1 < len(i.Order) {
+		next = i.Order[i.CurrentTurn+1].Name
+	} else {
+		next = i.Order[0].Name
 	}
-	for _, i := range e.Attackers.Roster {
-		b := &i
-		b.RollInitiative()
-		fmt.Printf("%s rolled %.2f\n", i.Name, i.Initiative)
-	}
+	fmt.Printf("Current turn: %s\n", current)
+	fmt.Printf("On deck: %s\n", next)
 
 }
 
-// RollInitiative rolls initiative for a being using a d20
-func (b *Being) RollInitiative() {
-	roll := float64(dice.Roll(20))
+// PrintTotalInitiative prints the Initiative Order
+func (i InitiativeOrder) PrintTotalInitiative() {
+	for _, x := range i.Order {
+		if x.Initiative >= 10 {
+			fmt.Printf("%.2f | %s\n", x.Initiative, x.Name)
+		} else {
+			fmt.Printf(" %.2f | %s\n", x.Initiative, x.Name)
+		}
+	}
+}
+
+// RollInitiative rolls initiative for each being in an encounter and adds them to the resulting InitiativeOrder
+func (e Encounter) RollInitiative() InitiativeOrder {
+	//var size = len(e.Attackers.Roster) + len(e.Defenders.Roster) - 2
+	var init = InitiativeOrder{CurrentTurn: 0, Order: make([]Being, 0)}
+	for _, b := range e.Attackers.Roster {
+		b.Initiative = RollInitiative(b)
+		init.Order = append(init.Order, b)
+	}
+	for _, b := range e.Defenders.Roster {
+		b.Initiative = RollInitiative(b)
+		init.Order = append(init.Order, b)
+	}
+	// sort the initiative
+	sort.Slice(init.Order, func(i, j int) bool {
+		return init.Order[i].Initiative > init.Order[j].Initiative
+	})
+	return init
+}
+
+// RollInitiative rolls initiative for a being using a d20 + DEXMOD, and raw Dex for tie breakers as the decimal
+func RollInitiative(b Being) float64 {
+	roll := float64(dice.Roll(20) + b.GetStat("DEX").Mod)
 	base := 100.00
 	roll += float64(b.DEX()) / base
-	b.Initiative = roll
+	return roll
 }
 
 // SelectTarget takes a slice of enemy being pointers, and selects at least one target
