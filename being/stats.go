@@ -111,7 +111,8 @@ func NewStat(name string) Stat {
 
 // roll 4d6kh3
 func rollStat() int {
-	rolls := []int{dice.Roll(6), dice.Roll(6), dice.Roll(6), dice.Roll(6)}
+	d := dice.Dice{}
+	rolls := []int{d.Roll(6), d.Roll(6), d.Roll(6), d.Roll(6)}
 	sum := 0
 	var minValue int
 	for i, e := range rolls {

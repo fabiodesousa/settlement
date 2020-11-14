@@ -19,9 +19,18 @@ type Being struct {
 	StatBlock
 }
 
+func (b *Being) IsAlive() bool {
+	return b.HitPoints.Current > 0
+}
+
+func (b *Being) SetInitiative(init float64) {
+	b.Initiative = init
+}
+
 // rolls 1d100, <50 = male, else female
 func determineSex() string {
-	if dice.Roll(100) < 50 {
+	d := dice.Dice{}
+	if d.Roll(100) < 50 {
 		return "male"
 	}
 	return "female"
@@ -36,7 +45,7 @@ func makeName(sex string) string {
 }
 
 // PrintStats prints each of the Beings stats
-func PrintStats(b Being) {
+func (b *Being) PrintStats() {
 	fmt.Printf("%s (%d/%d) [%s]\n", b.Name, b.HitPoints.Current, b.HitPoints.Max, b.MaxStat().Name)
 	fmt.Printf("Team: %s\n", b.Team.Name)
 	fmt.Printf("STR:%d (%d)\t", b.STR(), b.GetStat("STR").Mod)
@@ -49,7 +58,7 @@ func PrintStats(b Being) {
 }
 
 // NewRandomBeing generates a random Being
-func NewRandomBeing() Being {
+func NewRandomBeing() *Being {
 	sex := determineSex()
 	stats := NewStatBlock()
 	c := Being{
@@ -59,5 +68,5 @@ func NewRandomBeing() Being {
 		StatBlock: stats,
 		HitPoints: stats.NewHitPoints(),
 	}
-	return c
+	return &c
 }
