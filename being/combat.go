@@ -76,6 +76,16 @@ type Encounter struct {
 	TurnCount  int
 	Attackers  Team
 	Defenders  Team
+	Winner string
+	Log []*CombatLog
+}
+
+type CombatLog struct {
+	Attacker *Being
+	Defenders []*Being
+	Hits []bool
+	Kills []bool
+	Conversions []bool
 }
 
 func (e *Encounter) SortInitiative() {
@@ -176,27 +186,30 @@ func (b Being) SelectTarget(enemyTeam []*Being) []*Being {
 }
 
 // Attack takes an array of enemies and deals damage or converts them
-func (b *Being) Attack(enemies []*Being) {
+func (b *Being) Attack(e *Being) []bool {
+	result := []bool{false, false, false}
 	d := dice.Dice{}
-	for _, e := range enemies {
-		max := b.MaxStat()
-		fmt.Printf("%s (%s %d) attacks %s (%s %d)\n", b.Name, max.Name, max.Value, e.Name, max.Name, e.GetStat(max.Name).Value)
-		if max.Value >= e.GetStat(max.Name).Value {
-			fmt.Println("It's a hit!")
-			// Charisma check
-			if max.Name == "CHA" && d.Roll(100) > (100-max.Mod*5) {
-				e.DefectTo(b.Team)
-				fmt.Printf("%s has been converted to Team %s\n", e.Name, e.Team.Name)
-			} else if max.Name == "STR" {
-				e.HitPoints.Current -= max.Mod
-				fmt.Printf("%d damage! %s is at %d/%d\n", max.Mod, e.Name, e.HitPoints.Current, e.HitPoints.Max)
-			} else {
-				e.HitPoints.Current--
-				fmt.Printf("%s is at %d/%d\n", e.Name, e.HitPoints.Current, e.HitPoints.Max)
-			}
-			if(e.IsAlive() != true) { 
-				fmt.Printf("%s has been killed!\n", e.Name)
-			}
+	max := b.MaxStat()
+	fmt.Printf("%s (%s %d) attacks %s (%s %d)\n", b.Name, max.Name, max.Value, e.Name, max.Name, e.GetStat(max.Name).Value)
+	if max.Value >= e.GetStat(max.Name).Value {
+		result[0] = true
+		fmt.Println("It's a hit!")
+		// Charisma check
+		if max.Name == "CHA" && d.Roll(100) > (100-max.Mod*5) {
+			e.DefectTo(b.Team)
+			result[2] = true
+			fmt.Printf("%s has been converted to Team %s\n", e.Name, e.Team.Name)
+		} else if max.Name == "STR" {
+			e.HitPoints.Current -= max.Mod
+			fmt.Printf("%d damage! %s is at %d/%d\n", max.Mod, e.Name, e.HitPoints.Current, e.HitPoints.Max)
+		} else {
+			e.HitPoints.Current--
+			fmt.Printf("%s is at %d/%d\n", e.Name, e.HitPoints.Current, e.HitPoints.Max)
+		}
+		if(e.IsAlive() != true) { 
+			result[1] = true
+			fmt.Printf("%s has been killed!\n", e.Name)
 		}
 	}
+	return result
 }
